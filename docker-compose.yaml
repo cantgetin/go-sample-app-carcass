@@ -1,0 +1,51 @@
+version: "3.8"
+
+networks:
+  sample-network:
+    external: false
+
+services:
+  sample-svc:
+    build:
+      context: "."
+    networks:
+      - "sample-network"
+    ports:
+      - 8080:8080
+    depends_on:
+      "db":
+        condition: service_healthy
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+    restart: "on-failure"
+
+  db:
+    image: "postgres:15.2-alpine"
+    networks:
+      - "sample-network"
+    expose:
+      - ${DB_PORT}
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: "on-failure"
+
+  adminer:
+    image: "adminer"
+    networks:
+      - "sample-network"
+    restart: "on-failure"
+    depends_on:
+      - "db"
+    ports:
+      - "8081:8081"
